@@ -4,6 +4,14 @@ pipeline {
         jdk 'java17'
         maven 'Maven3'
     }
+    environment {
+        APP_NAME = 'register-app-pipeline'
+        RELEASE = '1.0.0'
+        DOCKER_USER = 'ashfaque9x'
+        DOCKER_PASS = 'dockerhub'
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
+        IMAGE_TAG = "${RELEASE}-${env.BUILD_NUMBER}"
+    }
     stages {
         stage('Cleanup Workspace') {
             steps {
@@ -25,18 +33,18 @@ pipeline {
                 sh 'mvn test'
             }
         }
-        stage("SonarQube Analysis"){
-           steps {
-	           script {
-		        withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
-                        sh "mvn sonar:sonar"
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
+                        sh 'mvn sonar:sonar'
                     }
                 }   
             }
         }
-        stage("Quality Gate"){
-           steps {
-               script {
+        stage('Quality Gate') {
+            steps {
+                script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
                 }   
             }
