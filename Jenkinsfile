@@ -8,9 +8,10 @@ pipeline {
         APP_NAME = 'register-app-pipeline'
         RELEASE = '1.0.0'
         DOCKER_USER = 'volkan42'
-        DOCKER_PASS = 'dockerhub'
+        DOCKER_PASS = credentials('dockerhub')
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${env.BUILD_NUMBER}"
+        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
     }
     stages {
         stage('Cleanup Workspace') {
@@ -36,7 +37,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
+                     withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
                         sh 'mvn sonar:sonar'
                     }
                 }   
@@ -57,6 +58,13 @@ pipeline {
                         dockerImage.push(IMAGE_TAG)
                         dockerImage.push('latest')
                     }
+                }
+            }
+        }
+        stage('Trigger CD Pipeline') {
+            steps {
+                script {
+                    sh "curl -v -k --user volk:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://ec2-172.31.36.141.us-east-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
                 }
             }
         }
