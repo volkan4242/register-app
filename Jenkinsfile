@@ -7,7 +7,7 @@ pipeline {
     environment {
         APP_NAME = 'register-app-pipeline'
         RELEASE = '1.0.0'
-        DOCKER_USER = 'ashfaque9x'
+        DOCKER_USER = 'volkan42'
         DOCKER_PASS = 'dockerhub'
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${env.BUILD_NUMBER}"
@@ -36,7 +36,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') { 
+                    withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') 
                         sh 'mvn sonar:sonar'
                     }
                 }   
@@ -47,6 +47,17 @@ pipeline {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
                 }   
+            }
+        }
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKER_PASS) {
+                        def dockerImage = docker.build(IMAGE_NAME)
+                        dockerImage.push(IMAGE_TAG)
+                        dockerImage.push('latest')
+                    }
+                }
             }
         }
     }
